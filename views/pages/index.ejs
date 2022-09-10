@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Desliza a la izquierda o a la derecha para mostrar tu interés &#x1F60D; | Chinder</title>
+    <style>
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        #board {
+            background-color: rgb(245,247,250);
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card {
+            cursor: pointer;
+            position: absolute;
+            right: 0;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            margin: auto;
+            width: 500px;
+            height: 500px;
+            border-radius: 1%;
+            box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="board"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+<script>
+
+    class EfectTinder {
+        constructor(element) {
+            this.board = element
+            this.push("https://www.theplace2.ru/cache/archive/bryce_dallas_howard/img/image(9)-gthumb-gwdata1200-ghdata1200-gfitdatamax.jpg")
+            this.push("https://images.squarespace-cdn.com/content/54722d54e4b0d8b901720080/1417385014769-0T4UAEQ4GT7DMAE1MNA9/image-asset.jpeg?content-type=image%2Fjpeg")
+            this.push("https://st2.depositphotos.com/5326338/8138/i/950/depositphotos_81386800-stock-photo-actress-elizabeth-olsen.jpg")
+            this.push("https://i.pinimg.com/originals/ae/54/af/ae54af0178149ef0071c1a53664ccefb.jpg")
+            this.push("https://revistaq.mx/wp-content/uploads/2018/05/Alyvia-Alyn-Lind-10-a%C3%B1os.jpg")
+            this.push("https://i.pinimg.com/originals/26/92/56/2692563e65d0da43c98518fe088b98dc.jpg")
+            this.push("https://www.viveusa.mx/sites/default/files/styles/detalle_nota_1080x666_v22/public/field/image/portada_gal_gadot_ap_1.jpg?itok=Z_RPbBv1")
+            this.push("https://i0.wp.com/hollywoodlife.com/wp-content/uploads/2022/07/camila-cabello-beach-bikini-mystery-man-mega-post.jpg?resize=620%2C915&ssl=1")
+            this.handle()
+        }
+
+        handle() {
+            
+            this.cards = this.board.querySelectorAll('.card')
+            this.topCard = this.cards[this.cards.length - 1]
+            this.nextCard = this.cards[this.cards.length - 2]
+
+            if (this.cards.length > 0) {
+
+                this.topCard.style.transform = 'translateX(0) translateY(0) rotate(0deg) rotateY(0deg)'
+                
+                if (this.hammer) this.hammer.destroy()
+
+                this.hammer = new Hammer(this.topCard)
+                this.hammer.add(new Hammer.Tap())
+                this.hammer.add(new Hammer.Pan({
+                    position: Hammer.position_ALL,
+                    threshold: 0
+                }))
+                
+                this.hammer.on('pan', (e) => {
+                    this.onPan(e)
+                })
+            }
+        }
+        
+        onPan(e) {
+
+            if (!this.isPanning) {
+                this.isPanning = true
+                this.topCard.style.transition = null
+                
+                if (this.nextCard) this.nextCard.style.transition = null
+
+                let style = window.getComputedStyle(this.topCard)
+                let mx = style.transform.match(/^matrix\((.+)\)$/)
+                this.startPosX = mx ? parseFloat(mx[1].split(', ')[4]) : 0
+                this.startPosY = mx ? parseFloat(mx[1].split(', ')[5]) : 0
+
+                let bounds = this.topCard.getBoundingClientRect()
+                this.isDraggingFrom = (e.center.y - bounds.top) > this.topCard.clientHeight / 2 ? -1 : 1
+            }
+
+            let posX = e.deltaX + this.startPosX
+            let posY = e.deltaY + this.startPosY
+            let propX = e.deltaX / this.board.clientWidth
+            let propY = e.deltaY / this.board.clientHeight
+            let dirX = e.deltaX < 0 ? -1 : 1
+            let deg = this.isDraggingFrom * dirX * Math.abs(propX) * 45
+            
+            this.topCard.style.transform = 'translateX(' + posX + 'px) translateY(' + posY + 'px) rotate(' + deg + 'deg) rotateY(0deg)'
+
+            if (e.isFinal) {
+
+                this.isPanning = false
+                let successful = false
+                this.topCard.style.transition = 'transform 200ms ease-out'
+                
+                if (this.nextCard) this.nextCard.style.transition = 'transform 100ms linear'
+                
+                if (propX > 0.25 && e.direction == Hammer.DIRECTION_RIGHT) {
+                    successful = true
+                    posX = this.board.clientWidth
+                } else if (propX < -0.25 && e.direction == Hammer.DIRECTION_LEFT) {
+                    successful = true
+                    posX = -(this.board.clientWidth + this.topCard.clientWidth)
+                }
+
+                if (successful) {
+                    this.topCard.style.transform = 'translateX(' + posX + 'px) translateY(' + posY + 'px) rotate(' + deg + 'deg)'
+
+                    setTimeout(() => {
+                        this.board.removeChild(this.topCard)
+                        //this.push()
+                        //this.handle()
+                    }, 200)
+                } else {
+                    this.topCard.style.transform = 'translateX(0) translateY(0) rotate(0deg) rotateY(0deg)'
+                }
+            }
+        }
+
+
+        push(imageSrc) {
+            let card = document.createElement('div')
+            card.classList.add('card')
+            card.style.backgroundImage = `url('${imageSrc}')`;
+            card.style.backgroundRepeat = "no-repeat";
+            card.style.backgroundSize = "cover";
+            this.board.insertBefore(card, this.board.firstChild)
+        }
+    }
+
+    let board = document.querySelector('#board')
+    let tinder = new EfectTinder(board);
+
+    </script>
+</body>
+</html>
